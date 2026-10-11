@@ -1,0 +1,1638 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FishLog Pro - Diário & Assistente de Pesca Brasil</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        forest: {
+                            950: '#0a160a',
+                            900: '#132A13',
+                            800: '#1C3B1C',
+                            700: '#284E28',
+                        },
+                        emerald: {
+                            DEFAULT: '#31572C',
+                            600: '#3A6B34',
+                            500: '#4F772D',
+                            400: '#70A03D'
+                        },
+                        gold: {
+                            400: '#FBBF24',
+                            500: '#F59E0B',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet OpenStreetMap CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #31572C; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #132A13; }
+        .tab-content { display: none; }
+        .tab-content.active { display: flex; flex-direction: column; }
+        #map, #modal-map { z-index: 1; }
+    </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 h-full flex flex-col md:flex-row overflow-hidden transition-colors duration-200">
+
+    <!-- DESKTOP SIDEBAR -->
+    <aside class="hidden md:flex flex-col w-72 bg-forest-900 dark:bg-forest-950 text-white shadow-2xl z-20 shrink-0">
+        <div class="p-6 flex items-center justify-between border-b border-forest-700/50">
+            <div class="flex items-center space-x-3">
+                <div class="bg-gradient-to-tr from-emerald-600 to-emerald-400 p-3 rounded-2xl shadow-lg text-white">
+                    <i class="fa-solid fa-fish-fins text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold tracking-tight flex items-center gap-1.5">
+                        FishLog <span class="bg-gold-500 text-slate-950 text-[10px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">PRO</span>
+                    </h1>
+                    <p class="text-xs text-emerald-400 font-medium">Diário de Pesca Brasil</p>
+                </div>
+            </div>
+        </div>
+        
+        <nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+            <button onclick="switchTab('dashboard')" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all bg-emerald-500 text-white shadow-lg shadow-emerald-900/30" data-target="dashboard">
+                <i class="fa-solid fa-chart-pie w-5 text-center"></i>
+                <span>Dashboard & Solunar</span>
+            </button>
+            <button onclick="switchTab('catches')" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all text-slate-300 hover:bg-forest-800 hover:text-white" data-target="catches">
+                <i class="fa-solid fa-fish w-5 text-center text-emerald-400"></i>
+                <span>Minhas Capturas</span>
+            </button>
+            <button onclick="switchTab('map-view')" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all text-slate-300 hover:bg-forest-800 hover:text-white" data-target="map-view">
+                <i class="fa-solid fa-map-location-dot w-5 text-center text-teal-400"></i>
+                <span>Mapa de Pontos GPS</span>
+            </button>
+            <button onclick="switchTab('tacklebox')" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all text-slate-300 hover:bg-forest-800 hover:text-white" data-target="tacklebox">
+                <i class="fa-solid fa-box-archive w-5 text-center text-amber-400"></i>
+                <span>Caixa de Tralhas</span>
+            </button>
+            <button onclick="switchTab('trips')" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all text-slate-300 hover:bg-forest-800 hover:text-white" data-target="trips">
+                <i class="fa-solid fa-compass w-5 text-center text-sky-400"></i>
+                <span>Excursões & Viagens</span>
+            </button>
+            <button onclick="switchTab('encyclopedia')" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all text-slate-300 hover:bg-forest-800 hover:text-white" data-target="encyclopedia">
+                <i class="fa-solid fa-book-atlas w-5 text-center text-indigo-400"></i>
+                <span>Guia de Espécies</span>
+            </button>
+            <button onclick="switchTab('assistant')" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all text-slate-300 hover:bg-forest-800 hover:text-white" data-target="assistant">
+                <i class="fa-solid fa-robot w-5 text-center text-purple-400"></i>
+                <span>Assistente IA</span>
+            </button>
+        </nav>
+
+        <div class="p-4 border-t border-forest-700/50 bg-forest-950/60 space-y-3">
+            <div class="flex items-center justify-between">
+                <button onclick="toggleDarkMode()" class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-forest-800 hover:bg-forest-700 text-slate-200 flex items-center gap-2 transition">
+                    <i id="dark-icon" class="fa-solid fa-moon text-gold-400"></i>
+                    <span id="dark-text">Modo Escuro</span>
+                </button>
+                <button onclick="exportData()" title="Backup em JSON" class="text-xs font-semibold p-2 rounded-xl bg-forest-800 hover:bg-forest-700 text-slate-200 transition">
+                    <i class="fa-solid fa-download"></i>
+                </button>
+            </div>
+            <div class="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+                <span>Versão 3.0 Pro Edition</span>
+                <span class="text-emerald-400 font-semibold flex items-center gap-1"><i class="fa-solid fa-wifi text-[9px]"></i> Offline</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- MOBILE HEADER -->
+    <header class="md:hidden bg-forest-900 dark:bg-forest-950 text-white flex items-center justify-between p-4 shadow-md z-20">
+        <div class="flex items-center space-x-3">
+            <div class="bg-gradient-to-tr from-emerald-600 to-emerald-400 p-2 rounded-xl text-white shadow">
+                <i class="fa-solid fa-fish-fins text-lg"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-base flex items-center gap-1.5">
+                    FishLog <span class="bg-gold-500 text-slate-950 text-[9px] font-black px-1 rounded uppercase">PRO</span>
+                </h1>
+                <p class="text-[10px] text-emerald-400">Diário de Pesca Brasil</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <button onclick="toggleDarkMode()" class="p-2 bg-forest-800 rounded-xl text-gold-400">
+                <i id="mob-dark-icon" class="fa-solid fa-moon text-sm"></i>
+            </button>
+            <button onclick="openCatchModal()" class="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-2 rounded-xl text-xs font-semibold shadow flex items-center space-x-1.5">
+                <i class="fa-solid fa-plus"></i>
+                <span>Captura</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- MOBILE NAVIGATION BOTTOM BAR -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-forest-900 dark:bg-forest-950 text-slate-300 flex justify-around p-2 border-t border-forest-800 z-30 shadow-2xl">
+        <button onclick="switchTab('dashboard')" class="mob-btn flex flex-col items-center py-1 px-2 text-emerald-400 text-xs font-semibold" data-target="dashboard">
+            <i class="fa-solid fa-chart-pie text-lg mb-0.5"></i>
+            <span>Início</span>
+        </button>
+        <button onclick="switchTab('catches')" class="mob-btn flex flex-col items-center py-1 px-2 text-slate-400 text-xs" data-target="catches">
+            <i class="fa-solid fa-fish text-lg mb-0.5"></i>
+            <span>Capturas</span>
+        </button>
+        <button onclick="switchTab('map-view')" class="mob-btn flex flex-col items-center py-1 px-2 text-slate-400 text-xs" data-target="map-view">
+            <i class="fa-solid fa-map-location-dot text-lg mb-0.5"></i>
+            <span>Mapa</span>
+        </button>
+        <button onclick="switchTab('tacklebox')" class="mob-btn flex flex-col items-center py-1 px-2 text-slate-400 text-xs" data-target="tacklebox">
+            <i class="fa-solid fa-box-archive text-lg mb-0.5"></i>
+            <span>Tralhas</span>
+        </button>
+        <button onclick="switchTab('assistant')" class="mob-btn flex flex-col items-center py-1 px-2 text-slate-400 text-xs" data-target="assistant">
+            <i class="fa-solid fa-robot text-lg mb-0.5"></i>
+            <span>IA</span>
+        </button>
+    </nav>
+
+    <!-- MAIN CONTENT VIEW CONTAINER -->
+    <main class="flex-1 h-full overflow-y-auto pb-20 md:pb-0">
+
+        <!-- 1. DASHBOARD & SOLUNAR FORECAST -->
+        <section id="dashboard" class="tab-content active p-4 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
+            
+            <!-- Welcome Pro Hero Banner -->
+            <div class="bg-gradient-to-br from-forest-900 via-forest-800 to-emerald-800 rounded-3xl p-6 md:p-8 text-white shadow-2xl relative overflow-hidden">
+                <div class="absolute right-0 bottom-0 opacity-10 pointer-events-none translate-x-12 translate-y-12">
+                    <i class="fa-solid fa-fish-fins text-[280px]"></i>
+                </div>
+                <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-2">
+                            <span class="bg-gold-500/20 text-gold-400 border border-gold-500/30 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 uppercase tracking-wider">
+                                <i class="fa-solid fa-crown text-xs"></i> Pro Edition Active
+                            </span>
+                            <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-medium px-3 py-1 rounded-full flex items-center gap-1">
+                                <i class="fa-solid fa-calendar-day text-xs"></i> <span id="dash-date-str">11 de Outubro</span>
+                            </span>
+                        </div>
+                        <h2 class="text-3xl md:text-5xl font-black tracking-tight">Painel do Pescador Pro</h2>
+                        <p class="text-slate-200 text-sm md:text-base max-w-2xl leading-relaxed">
+                            Previsão solunar em tempo real, registros com GPS interativo e estatísticas avançadas da sua pescaria.
+                        </p>
+                    </div>
+                    <div class="flex flex-wrap gap-3 shrink-0">
+                        <button onclick="openCatchModal()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-6 py-3.5 rounded-2xl shadow-xl transition transform hover:-translate-y-0.5 flex items-center space-x-2 text-sm">
+                            <i class="fa-solid fa-circle-plus text-lg"></i>
+                            <span>Nova Captura</span>
+                        </button>
+                        <button onclick="exportData()" class="bg-white/10 hover:bg-white/20 text-white border border-white/20 font-semibold px-4 py-3.5 rounded-2xl transition flex items-center space-x-2 backdrop-blur-sm text-sm">
+                            <i class="fa-solid fa-download text-emerald-400"></i>
+                            <span>Exportar Dados</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Solunar Activity & Weather Widget Card -->
+            <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-200/80 dark:border-slate-700 space-y-4">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-700 pb-4">
+                    <div>
+                        <h3 class="text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                            <i class="fa-solid fa-moon text-indigo-500"></i> Previsão Solunar & Tábua de Atividade
+                        </h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Cálculo solunar para maiores picos de alimentação dos peixes hoje</p>
+                    </div>
+                    <div class="flex items-center gap-2 bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200">
+                        <i class="fa-solid fa-circle-info text-emerald-500"></i>
+                        <span id="lunar-phase-name">Lua Minguante (78%)</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="bg-slate-50 dark:bg-slate-700/30 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center space-x-3">
+                        <div class="bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 p-3 rounded-xl text-xl">
+                            <i class="fa-solid fa-sun"></i>
+                        </div>
+                        <div>
+                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Pico Solunar Principal</span>
+                            <span id="solunar-major" class="text-base font-extrabold text-slate-800 dark:text-slate-100">06:15 - 08:15</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 dark:bg-slate-700/30 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center space-x-3">
+                        <div class="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 p-3 rounded-xl text-xl">
+                            <i class="fa-solid fa-moon"></i>
+                        </div>
+                        <div>
+                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Pico Secundário</span>
+                            <span id="solunar-minor" class="text-base font-extrabold text-slate-800 dark:text-slate-100">17:40 - 19:10</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 dark:bg-slate-700/30 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center space-x-3">
+                        <div class="bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 p-3 rounded-xl text-xl">
+                            <i class="fa-solid fa-gauge-high"></i>
+                        </div>
+                        <div>
+                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Produtividade Prevista</span>
+                            <span id="solunar-rating" class="text-base font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                                <i class="fa-solid fa-star text-gold-400 text-xs"></i> Ótima (4/5)
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 dark:bg-slate-700/30 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center space-x-3">
+                        <div class="bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400 p-3 rounded-xl text-xl">
+                            <i class="fa-solid fa-temperature-three-quarters"></i>
+                        </div>
+                        <div>
+                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Pressão Estimada</span>
+                            <span class="text-base font-extrabold text-slate-800 dark:text-slate-100">1014 hPa (Estável)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Metric Counters -->
+            <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-700 flex flex-col justify-between hover:shadow-md transition">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Total Capturado</span>
+                        <div class="bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 p-2.5 rounded-xl"><i class="fa-solid fa-fish text-lg"></i></div>
+                    </div>
+                    <div class="mt-4">
+                        <h3 id="stat-total-fish" class="text-3xl font-black text-slate-900 dark:text-white">0</h3>
+                        <p class="text-xs text-emerald-600 dark:text-emerald-400 font-semibold mt-1 flex items-center gap-1"><i class="fa-solid fa-arrow-trend-up"></i>Registros no diário</p>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-700 flex flex-col justify-between hover:shadow-md transition">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Maior Tréu / Peso</span>
+                        <div class="bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-400 p-2.5 rounded-xl"><i class="fa-solid fa-trophy text-lg"></i></div>
+                    </div>
+                    <div class="mt-4">
+                        <h3 id="stat-largest-fish" class="text-2xl font-black text-slate-900 dark:text-white truncate">0.0 kg</h3>
+                        <p id="stat-largest-species" class="text-xs text-purple-600 dark:text-purple-400 font-semibold mt-1 truncate">Nenhum registro</p>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-700 flex flex-col justify-between hover:shadow-md transition">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Espécie Favorita</span>
+                        <div class="bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 p-2.5 rounded-xl"><i class="fa-solid fa-star text-lg"></i></div>
+                    </div>
+                    <div class="mt-4">
+                        <h3 id="stat-top-species" class="text-lg font-bold text-slate-900 dark:text-white truncate">-</h3>
+                        <p class="text-xs text-amber-600 dark:text-amber-400 font-semibold mt-1 flex items-center gap-1"><i class="fa-solid fa-chart-simple"></i> Mais fisgada</p>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-700 flex flex-col justify-between hover:shadow-md transition">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Pontos Salvos</span>
+                        <div class="bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-400 p-2.5 rounded-xl"><i class="fa-solid fa-location-dot text-lg"></i></div>
+                    </div>
+                    <div class="mt-4">
+                        <h3 id="stat-total-spots" class="text-3xl font-black text-slate-900 dark:text-white">0</h3>
+                        <p class="text-xs text-teal-600 dark:text-teal-400 font-semibold mt-1 flex items-center gap-1"><i class="fa-solid fa-map-pin"></i> GPS Mapeados</p>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-700 flex flex-col justify-between hover:shadow-md transition col-span-2 lg:col-span-1">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Tralhas na Caixa</span>
+                        <div class="bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-400 p-2.5 rounded-xl"><i class="fa-solid fa-box-archive text-lg"></i></div>
+                    </div>
+                    <div class="mt-4">
+                        <h3 id="stat-total-gear" class="text-3xl font-black text-slate-900 dark:text-white">0</h3>
+                        <p class="text-xs text-sky-600 dark:text-sky-400 font-semibold mt-1 flex items-center gap-1"><i class="fa-solid fa-wand-magic-sparkles"></i> Equipamentos</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts & Recent Catches Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Monthly Catch Chart -->
+                <div class="lg:col-span-2 bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-200/80 dark:border-slate-700 flex flex-col">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <i class="fa-solid fa-chart-column text-emerald-600"></i> Desempenho Mensal de Pesca
+                            </h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Evolução do número de peixes capturados por mês</p>
+                        </div>
+                    </div>
+                    <div class="flex-1 min-h-[240px] relative">
+                        <canvas id="monthlyChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Species Distribution Chart -->
+                <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-200/80 dark:border-slate-700 flex flex-col">
+                    <div class="mb-4">
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <i class="fa-solid fa-chart-pie text-amber-500"></i> Distribuição por Espécie
+                        </h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Proporção dos seus peixes no diário</p>
+                    </div>
+                    <div class="flex-1 min-h-[220px] relative flex items-center justify-center">
+                        <canvas id="speciesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- 2. CATCH LOGS VIEW -->
+        <section id="catches" class="tab-content p-4 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-200/80 dark:border-slate-700">
+                <div>
+                    <h2 class="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-fish text-emerald-600"></i> Histórico Completo de Capturas
+                    </h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Gerencie, filtre e analise todas as suas pescarias com suporte a GPS e foto</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="openCatchModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-3 rounded-2xl shadow transition flex items-center space-x-2 text-sm">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Nova Captura</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filters Bar -->
+            <div class="bg-white dark:bg-slate-800 p-4 md:p-6 rounded-3xl shadow-sm border border-slate-200/80 dark:border-slate-700 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Buscar por palavra-chave</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                            <i class="fa-solid fa-search"></i>
+                        </span>
+                        <input type="text" id="filter-search" oninput="filterCatches()" placeholder="Espécie, local, isca..." class="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:text-white">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Tipo de Água</label>
+                    <select id="filter-water" onchange="filterCatches()" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:text-white">
+                        <option value="">Todas as Águas</option>
+                        <option value="Água Doce">Água Doce</option>
+                        <option value="Água Salgada">Água Salgada</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Ordenar por</label>
+                    <select id="filter-sort" onchange="filterCatches()" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:text-white">
+                        <option value="newest">Mais Recentes</option>
+                        <option value="oldest">Mais Antigos</option>
+                        <option value="heaviest">Mais Pesados (kg)</option>
+                        <option value="longest">Mais Compridos (cm)</option>
+                    </select>
+                </div>
+                <div class="flex items-end">
+                    <button onclick="resetFilters()" class="w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold py-2.5 px-4 rounded-xl text-sm transition flex items-center justify-center space-x-1.5">
+                        <i class="fa-solid fa-rotate-right"></i>
+                        <span>Limpar Filtros</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Catches Grid -->
+            <div id="catches-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Dynamically rendered -->
+            </div>
+        </section>
+
+        <!-- 3. INTERACTIVE GPS MAP VIEW -->
+        <section id="map-view" class="tab-content p-4 md:p-8 space-y-6 max-w-7xl mx-auto w-full flex-1">
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-200/80 dark:border-slate-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 class="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-map-location-dot text-teal-600"></i> Mapa Interativo de Pontos de Pesca (GPS)
+                    </h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Visualize suas capturas no mapa e adicione marcadores de estruturas, galhadas e pesqueiros</p>
+                </div>
+                <div class="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    <i class="fa-solid fa-location-crosshairs text-teal-500"></i> Clique no mapa para capturar coordenadas GPS
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-800 p-3 rounded-3xl shadow-sm border border-slate-200/80 dark:border-slate-700 overflow-hidden flex-1 min-h-[500px]">
+                <div id="map" class="w-full h-[520px] rounded-2xl"></div>
+            </div>
+        </section>
+
+        <!-- 4. TACKLE BOX & GEAR MANAGER -->
+        <section id="tacklebox" class="tab-content p-4 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-200/80 dark:border-slate-700">
+                <div>
+                    <h2 class="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-box-archive text-amber-500"></i> Caixa de Tralhas (Equipamentos)
+                    </h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Cadastre varas, molinetes, carretilhas, linhas e iscas favoritas para associar aos seus registros</p>
+                </div>
+                <button onclick="openGearModal()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-5 py-3 rounded-2xl shadow transition flex items-center space-x-2 text-sm">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Adicionar Equipamento</span>
+                </button>
+            </div>
+
+            <div id="gear-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Dynamic render -->
+            </div>
+        </section>
+
+        <!-- 5. TRIPS VIEW -->
+        <section id="trips" class="tab-content p-4 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-200/80 dark:border-slate-700">
+                <div>
+                    <h2 class="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-compass text-sky-500"></i> Excursões & Viagens de Pesca
+                    </h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Planeje e acompanhe suas viagens para rios, represas e litoral do Brasil</p>
+                </div>
+                <button onclick="openTripModal()" class="bg-sky-600 hover:bg-sky-700 text-white font-bold px-5 py-3 rounded-2xl shadow transition flex items-center space-x-2 text-sm">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Nova Excursão</span>
+                </button>
+            </div>
+
+            <div id="trips-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Dynamic render -->
+            </div>
+        </section>
+
+        <!-- 6. ENCYCLOPEDIA VIEW -->
+        <section id="encyclopedia" class="tab-content p-4 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-200/80 dark:border-slate-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 class="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-book-atlas text-indigo-500"></i> Enciclopédia de Espécies do Brasil
+                    </h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Consulte características, técnicas, tamanho mínimo e regulamentação</p>
+                </div>
+                <div class="w-full md:w-72">
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                            <i class="fa-solid fa-search"></i>
+                        </span>
+                        <input type="text" id="encyclopedia-search" oninput="filterEncyclopedia()" placeholder="Buscar peixe..." class="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:text-white">
+                    </div>
+                </div>
+            </div>
+
+            <div id="encyclopedia-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Dynamic render -->
+            </div>
+        </section>
+
+        <!-- 7. CHAT AI ASSISTANT -->
+        <section id="assistant" class="tab-content p-4 md:p-8 space-y-6 max-w-5xl mx-auto w-full flex-1 flex flex-col">
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-200/80 dark:border-slate-700 flex flex-col flex-1 overflow-hidden min-h-[500px]">
+                <div class="flex items-center space-x-3 border-b border-slate-100 dark:border-slate-700 pb-4 mb-4">
+                    <div class="bg-gradient-to-tr from-purple-600 to-indigo-600 text-white p-3 rounded-2xl shadow">
+                        <i class="fa-solid fa-robot text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+                            Assistente Especialista em Pesca Esportiva <i class="fa-solid fa-sparkles text-amber-400 text-xs"></i>
+                        </h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Tire dúvidas sobre nós, equipamento, condições climáticas e técnicas</p>
+                    </div>
+                </div>
+
+                <!-- Chat Messages -->
+                <div id="chat-messages" class="flex-1 overflow-y-auto space-y-4 pr-2">
+                    <div class="flex items-start space-x-3">
+                        <div class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-bold text-xs"><i class="fa-solid fa-fish"></i></div>
+                        <div class="bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100 p-4 rounded-2xl max-w-xl text-sm shadow-sm">
+                            Olá, Pescador! Sou o seu assistente Pro. Como posso te ajudar hoje? Posso sugerir iscas para Tucunarés, nós para líderes de Fluorcarbono ou falar sobre a época da Piracema nos rios brasileiros!
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input -->
+                <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700 flex items-center space-x-2">
+                    <input type="text" id="chat-input" onkeypress="handleChatKey(event)" placeholder="Pergunte sobre iscas, nós, locais de pesca..." class="flex-1 px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:text-white">
+                    <button onclick="sendChatMessage()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl font-bold shadow transition text-sm flex items-center space-x-2">
+                        <span>Enviar</span>
+                        <i class="fa-solid fa-paper-plane text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- CATCH MODAL WITH GPS SELECTOR -->
+    <div id="catch-modal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-2xl w-full p-6 md:p-8 shadow-2xl my-8 max-h-[90vh] overflow-y-auto border border-slate-200/50 dark:border-slate-700">
+            <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-4 mb-6">
+                <h3 id="catch-modal-title" class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i class="fa-solid fa-fish text-emerald-600"></i> Registrar Nova Captura
+                </h3>
+                <button onclick="closeCatchModal()" class="text-slate-400 hover:text-slate-600 p-2"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <form id="catch-form" onsubmit="saveCatch(event)" class="space-y-4">
+                <input type="hidden" id="catch-id">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Espécie *</label>
+                        <select id="catch-species" required onchange="checkCustomSpecies(this)" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white">
+                            <option value="Tucunaré">Tucunaré</option>
+                            <option value="Tilápia">Tilápia</option>
+                            <option value="Traíra">Traíra</option>
+                            <option value="Dourado">Dourado</option>
+                            <option value="Pintado">Pintado</option>
+                            <option value="Pacu">Pacu</option>
+                            <option value="Tambaqui">Tambaqui</option>
+                            <option value="Robalo">Robalo</option>
+                            <option value="Corvina">Corvina</option>
+                            <option value="Outro">Outro (Personalizado)</option>
+                        </select>
+                    </div>
+                    <div id="custom-species-wrapper" class="hidden">
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Nome da Espécie *</label>
+                        <input type="text" id="catch-custom-species" placeholder="Ex: Matrinxã" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Peso (kg) *</label>
+                        <input type="number" step="0.01" min="0" id="catch-weight" required placeholder="Ex: 3.2" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Comprimento (cm)</label>
+                        <input type="number" step="0.1" min="0" id="catch-length" placeholder="Ex: 58.5" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Data *</label>
+                        <input type="date" id="catch-date" required class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Horário</label>
+                        <input type="time" id="catch-time" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Local / Rio *</label>
+                        <input type="text" id="catch-location" required placeholder="Ex: Represa de Jurumirim" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Tipo de Água</label>
+                        <select id="catch-water-type" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white">
+                            <option value="Água Doce">Água Doce</option>
+                            <option value="Água Salgada">Água Salgada</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- GPS Coords Picker -->
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center">
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300">Coordenadas GPS (Lat / Lng)</label>
+                        <button type="button" onclick="getCurrentLocation()" class="text-xs text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 hover:underline">
+                            <i class="fa-solid fa-crosshairs"></i> Usar Minha Localização Atual
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="text" id="catch-lat" placeholder="-22.8833" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs dark:text-white">
+                        <input type="text" id="catch-lng" placeholder="-48.5667" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs dark:text-white">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Isca Utilizada</label>
+                        <input type="text" id="catch-bait" placeholder="Ex: Jig de Pena 10g / Camarão Soft" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Equipamento da Caixa</label>
+                        <select id="catch-gear-id" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white">
+                            <option value="">(Nenhum selecionado)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Observações Pessoais</label>
+                    <textarea id="catch-notes" rows="2" placeholder="Velocidade de recolhimento, clima, estrutura..." class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Foto da Captura</label>
+                    <input type="file" id="catch-photo-input" accept="image/*" onchange="previewCatchPhoto(event)" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
+                    <input type="hidden" id="catch-photo-base64">
+                    <div id="catch-photo-preview-container" class="mt-2 hidden">
+                        <img id="catch-photo-preview-img" src="" alt="Preview" class="w-32 h-32 object-cover rounded-xl border">
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100 dark:border-slate-700">
+                    <button type="button" onclick="closeCatchModal()" class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold px-5 py-2.5 rounded-xl text-sm transition">Cancelar</button>
+                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm shadow transition">Salvar Captura</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- GEAR MODAL -->
+    <div id="gear-modal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-xl w-full p-6 md:p-8 shadow-2xl my-8">
+            <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-4 mb-6">
+                <h3 id="gear-modal-title" class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i class="fa-solid fa-box-archive text-amber-500"></i> Adicionar Equipamento
+                </h3>
+                <button onclick="closeGearModal()" class="text-slate-400 hover:text-slate-600 p-2"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="gear-form" onsubmit="saveGear(event)" class="space-y-4">
+                <input type="hidden" id="gear-id">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Nome do Equipamento / Conjunto *</label>
+                    <input type="text" id="gear-name" required placeholder="Ex: Vara Venator 17lbs + Carretilha Tatula" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm dark:text-white">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Categoria *</label>
+                        <select id="gear-category" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm dark:text-white">
+                            <option value="Conjunto">Conjunto Completo</option>
+                            <option value="Vara">Vara</option>
+                            <option value="Molinete / Carretilha">Molinete / Carretilha</option>
+                            <option value="Linha / Leader">Linha / Leader</option>
+                            <option value="Isca Artificial">Isca Artificial</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Linha Recomendada</label>
+                        <input type="text" id="gear-line" placeholder="Ex: Multi 0.23mm (30lb)" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm dark:text-white">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Detalhes e Especificações</label>
+                    <textarea id="gear-details" rows="2" placeholder="Ex: Ação rápida, tamanho 5'8, drag de 6kg..." class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm dark:text-white"></textarea>
+                </div>
+                <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100 dark:border-slate-700">
+                    <button type="button" onclick="closeGearModal()" class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold px-5 py-2.5 rounded-xl text-sm">Cancelar</button>
+                    <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-sm shadow">Salvar Tralha</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TRIP MODAL -->
+    <div id="trip-modal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-xl w-full p-6 md:p-8 shadow-2xl my-8">
+            <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-4 mb-6">
+                <h3 id="trip-modal-title" class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i class="fa-solid fa-compass text-sky-500"></i> Nova Excursão de Pesca
+                </h3>
+                <button onclick="closeTripModal()" class="text-slate-400 hover:text-slate-600 p-2"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="trip-form" onsubmit="saveTrip(event)" class="space-y-4">
+                <input type="hidden" id="trip-id">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Nome da Excursão *</label>
+                    <input type="text" id="trip-name" required placeholder="Ex: Expedição Rio Teles Pires" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm dark:text-white">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Início *</label>
+                        <input type="date" id="trip-start" required class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Término *</label>
+                        <input type="date" id="trip-end" required class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm dark:text-white">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Local / Pousada *</label>
+                    <input type="text" id="trip-location" required placeholder="Ex: Pousada Piquiri - MT" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm dark:text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Espécies Alvo</label>
+                    <input type="text" id="trip-target" placeholder="Ex: Jaú, Cachara, Tucunaré Açu" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm dark:text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Observações</label>
+                    <textarea id="trip-notes" rows="2" placeholder="Guia de pesca contratado, tralhas pesadas..." class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm dark:text-white"></textarea>
+                </div>
+                <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100 dark:border-slate-700">
+                    <button type="button" onclick="closeTripModal()" class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold px-5 py-2.5 rounded-xl text-sm">Cancelar</button>
+                    <button type="submit" class="bg-sky-600 hover:bg-sky-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm shadow">Salvar Excursão</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SPECIES DETAIL MODAL -->
+    <div id="species-modal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-2xl w-full p-6 md:p-8 shadow-2xl my-8 max-h-[90vh] overflow-y-auto border border-slate-200/50 dark:border-slate-700">
+            <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-4 mb-6">
+                <h3 id="species-modal-name" class="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <i class="fa-solid fa-fish text-emerald-600"></i> Nome da Espécie
+                </h3>
+                <button onclick="closeSpeciesModal()" class="text-slate-400 hover:text-slate-600 p-2"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div id="species-modal-content" class="space-y-4 text-sm text-slate-700 dark:text-slate-200">
+                <!-- Dynamic content -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const brazilianFishEncyclopedia = [
+            {
+                name: "Tucunaré",
+                scientificName: "Cichla spp.",
+                waterType: "Água Doce",
+                habitat: "Rios e represas de águas limpas, margens com galhadas e vegetação.",
+                characteristics: "Corpo esverdeado/amarelado com faixas verticais e mancha ocelada na cauda.",
+                diet: "Carnívoro agressivo (peixes e camarões).",
+                suggestedBaits: "Iscas de superfície (Zigs, Poppers), Jigs de pena e softbaits.",
+                techniques: "Baitcasting e Fly Fishing.",
+                size: "30 cm a 85 cm (2 kg a 11+ kg).",
+                facts: "Saltos espetaculares ao ser fisgado e ataque territorial explosivo.",
+                regulations: "Consultar regras estaduais de cota e piracema."
+            },
+            {
+                name: "Dourado",
+                scientificName: "Salminus brasiliensis",
+                waterType: "Água Doce",
+                habitat: "Corredeiras fortes e rios caudalosos.",
+                characteristics: "Escamas douradas brilhantes com mandíbula forte e dentes afiados.",
+                diet: "Piscívoro voraz (piranhas, curimbas, lambaris).",
+                suggestedBaits: "Colheres, plugs de meia-água e isca viva (tuvira).",
+                techniques: "Arremesso em corredeiras e corrico.",
+                size: "50 cm a 110 cm (5 kg a 25+ kg).",
+                facts: "O famoso 'Rei do Rio', reconhecido pela força e giros acrobáticos.",
+                regulations: "Protegido por leis de cota zero em diversas bacias."
+            },
+            {
+                name: "Traíra",
+                scientificName: "Hoplias malabaricus",
+                waterType: "Água Doce",
+                habitat: "Lagos, brejos e lagoas com vegetação aquática (camalotes).",
+                characteristics: "Corpo cilíndrico, cabeça chata e dentes pontiagudos.",
+                diet: "Predador de emboscada.",
+                suggestedBaits: "Frogs de borracha antienrosco e softbaits offset.",
+                techniques: "Baitcasting na vegetação densa.",
+                size: "25 cm a 60 cm (1 kg a 5 kg).",
+                facts: "Ataca com ferocidade em águas rasas e turvas.",
+                regulations: "Sem restrição na maioria das regiões."
+            },
+            {
+                name: "Robalo",
+                scientificName: "Centropomus spp.",
+                waterType: "Água Salgada / Estuário",
+                habitat: "Manguezais, bocas de rios e pilares de pontes.",
+                characteristics: "Linha lateral preta proeminente e mandíbula projetada.",
+                diet: "Camarões e peixes pequenos.",
+                suggestedBaits: "Camarão sintético com Jig Head e plugs de meia-água.",
+                techniques: "Pincho com jigh head no fundo de estuários.",
+                size: "40 cm a 100 cm (1.5 kg a 12 kg).",
+                facts: "Extremamente manhoso e sensível a mudanças de maré.",
+                regulations: "Respeitar o período do defeso em rios e mangues."
+            },
+            {
+                name: "Pintado",
+                scientificName: "Pseudoplatystoma corruscans",
+                waterType: "Água Doce",
+                habitat: "Poços profundos de grandes rios e canais.",
+                characteristics: "Corpo alongado cinza com manchas pretas arredondadas e barbatanas táteis.",
+                diet: "Peixes de fundo.",
+                suggestedBaits: "Isca viva (tuvira/lambari) e peixes em chumbada pesada.",
+                techniques: "Pesca de espera no fundo.",
+                size: "70 cm a 160 cm (10 kg a 60 kg).",
+                facts: "Um dos maiores peixes de couro das bacias do Paraná e São Francisco.",
+                regulations: "Proibido na Piracema; respeitar tamanho mínimo de captura."
+            }
+        ];
+
+        let appData = {
+            catches: [
+                { id: 'c1', species: 'Tucunaré', customSpecies: '', weight: 3.8, length: 54, date: '2026-10-02', time: '08:30', location: 'Represa de Jurumirim', waterType: 'Água Doce', lat: -23.012, lng: -49.023, bait: 'Zig Zara 110', gearId: '', notes: 'Ataque lindo na superfície logo cedo.', photo: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600&auto=format&fit=crop&q=80' },
+                { id: 'c2', species: 'Dourado', customSpecies: '', weight: 6.5, length: 72, date: '2026-09-15', time: '16:15', location: 'Rio Paraná', waterType: 'Água Doce', lat: -20.650, lng: -51.120, bait: 'Colher Prata 25g', gearId: '', notes: 'Tomou muita linha no canal principal.', photo: 'https://images.unsplash.com/photo-1520808663317-647b476a81b9?w=600&auto=format&fit=crop&q=80' }
+            ],
+            trips: [
+                { id: 't1', name: 'Expedição Jurumirim 2026', start: '2026-10-01', end: '2026-10-04', location: 'Avaré - SP', target: 'Tucunaré Amarelo e Azul', notes: 'Tempo bom, vento fraco.' }
+            ],
+            gear: [
+                { id: 'g1', name: 'Conjunto Tucunaré 17lbs', category: 'Conjunto', line: 'Multi 0.23mm (30lb)', details: 'Vara 5’8 17lbs + Carretilha 8.1:1' },
+                { id: 'g2', name: 'Conjunto Pesado Couro', category: 'Conjunto', line: 'Mono 0.60mm', details: 'Vara 50lbs de espera' }
+            ],
+            settings: {
+                darkMode: false
+            }
+        };
+
+        let leafletMap = null;
+        let mapMarkers = [];
+        let monthlyChartInstance = null;
+        let speciesChartInstance = null;
+
+        // Initialize App
+        window.onload = function() {
+            loadStorage();
+            if (appData.settings && appData.settings.darkMode) {
+                document.documentElement.classList.add('dark');
+                updateDarkUI(true);
+            }
+
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('catch-date').value = today;
+            document.getElementById('dash-date-str').innerText = new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+            renderDashboard();
+            renderCatches();
+            renderGear();
+            renderTrips();
+            renderEncyclopedia(brazilianFishEncyclopedia);
+            initMap();
+        };
+
+        function loadStorage() {
+            const saved = localStorage.getItem('fishlog_pro_data');
+            if (saved) {
+                try {
+                    appData = JSON.parse(saved);
+                } catch(e) { console.error(e); }
+            } else {
+                saveStorageData();
+            }
+        }
+
+        function saveStorageData() {
+            localStorage.setItem('fishlog_pro_data', JSON.stringify(appData));
+        }
+
+        function toggleDarkMode() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            appData.settings = appData.settings || {};
+            appData.settings.darkMode = isDark;
+            saveStorageData();
+            updateDarkUI(isDark);
+        }
+
+        function updateDarkUI(isDark) {
+            const darkIcon = document.getElementById('dark-icon');
+            const darkText = document.getElementById('dark-text');
+            const mobDarkIcon = document.getElementById('mob-dark-icon');
+
+            if (isDark) {
+                if (darkIcon) darkIcon.className = 'fa-solid fa-sun text-gold-400';
+                if (darkText) darkText.innerText = 'Modo Claro';
+                if (mobDarkIcon) mobDarkIcon.className = 'fa-solid fa-sun text-sm';
+            } else {
+                if (darkIcon) darkIcon.className = 'fa-solid fa-moon text-gold-400';
+                if (darkText) darkText.innerText = 'Modo Escuro';
+                if (mobDarkIcon) mobDarkIcon.className = 'fa-solid fa-moon text-sm';
+            }
+        }
+
+        // Navigation Switcher
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            const targetEl = document.getElementById(tabId);
+            if (targetEl) targetEl.classList.add('active');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                if(btn.dataset.target === tabId) {
+                    btn.className = 'nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all bg-emerald-500 text-white shadow-lg shadow-emerald-900/30';
+                } else {
+                    btn.className = 'nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all text-slate-300 hover:bg-forest-800 hover:text-white';
+                }
+            });
+
+            document.querySelectorAll('.mob-btn').forEach(btn => {
+                if(btn.dataset.target === tabId) {
+                    btn.className = 'mob-btn flex flex-col items-center py-1 px-2 text-emerald-400 text-xs font-semibold';
+                } else {
+                    btn.className = 'mob-btn flex flex-col items-center py-1 px-2 text-slate-400 text-xs';
+                }
+            });
+
+            if (tabId === 'map-view') {
+                setTimeout(() => { if (leafletMap) leafletMap.invalidateSize(); }, 200);
+            }
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Render Dashboard & Analytics
+        function renderDashboard() {
+            const totalFish = appData.catches.length;
+            document.getElementById('stat-total-fish').innerText = totalFish;
+            document.getElementById('stat-total-gear').innerText = (appData.gear || []).length;
+            
+            const spotsCount = appData.catches.filter(c => c.lat && c.lng).length;
+            document.getElementById('stat-total-spots').innerText = spotsCount;
+
+            if (totalFish > 0) {
+                const speciesCount = {};
+                let largest = appData.catches[0];
+
+                appData.catches.forEach(c => {
+                    const sp = c.species === 'Outro' ? c.customSpecies : c.species;
+                    speciesCount[sp] = (speciesCount[sp] || 0) + 1;
+                    if (parseFloat(c.weight) > parseFloat(largest.weight)) largest = c;
+                });
+
+                const topSp = Object.keys(speciesCount).reduce((a, b) => speciesCount[a] > speciesCount[b] ? a : b);
+                document.getElementById('stat-top-species').innerText = topSp;
+                document.getElementById('stat-largest-fish').innerText = `${largest.weight} kg`;
+                document.getElementById('stat-largest-species').innerText = `${largest.species === 'Outro' ? largest.customSpecies : largest.species} (${largest.length || 0} cm)`;
+            } else {
+                document.getElementById('stat-top-species').innerText = '-';
+                document.getElementById('stat-largest-fish').innerText = '0.0 kg';
+                document.getElementById('stat-largest-species').innerText = 'Nenhum registro';
+            }
+
+            renderCharts();
+        }
+
+        function renderCharts() {
+            // 1. Monthly Chart
+            const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+            const monthlyCounts = new Array(12).fill(0);
+
+            appData.catches.forEach(c => {
+                if (c.date) {
+                    const monthIdx = new Date(c.date).getMonth();
+                    monthlyCounts[monthIdx]++;
+                }
+            });
+
+            const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+            if (monthlyChartInstance) monthlyChartInstance.destroy();
+
+            monthlyChartInstance = new Chart(monthlyCtx, {
+                type: 'bar',
+                data: {
+                    labels: months,
+                    datasets: [{
+                        label: 'Capturas',
+                        data: monthlyCounts,
+                        backgroundColor: '#31572C',
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { precision: 0 } }
+                    }
+                }
+            });
+
+            // 2. Species Pie Chart
+            const speciesCounts = {};
+            appData.catches.forEach(c => {
+                const sp = c.species === 'Outro' ? c.customSpecies : c.species;
+                speciesCounts[sp] = (speciesCounts[sp] || 0) + 1;
+            });
+
+            const speciesCtx = document.getElementById('speciesChart').getContext('2d');
+            if (speciesChartInstance) speciesChartInstance.destroy();
+
+            speciesChartInstance = new Chart(speciesCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(speciesCounts).length ? Object.keys(speciesCounts) : ['Sem registros'],
+                    datasets: [{
+                        data: Object.keys(speciesCounts).length ? Object.values(speciesCounts) : [1],
+                        backgroundColor: ['#31572C', '#F59E0B', '#0284C7', '#7C3AED', '#EC4899', '#10B981']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+        }
+
+        // LEAFLET GPS MAP
+        function initMap() {
+            if (leafletMap) return;
+            
+            // Center of Brazil default
+            leafletMap = L.map('map').setView([-14.235, -51.925], 4);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(leafletMap);
+
+            updateMapMarkers();
+        }
+
+        function updateMapMarkers() {
+            if (!leafletMap) return;
+            
+            // Clear existing
+            mapMarkers.forEach(m => leafletMap.removeLayer(m));
+            mapMarkers = [];
+
+            const points = [];
+
+            appData.catches.forEach(c => {
+                if (c.lat && c.lng) {
+                    const lat = parseFloat(c.lat);
+                    const lng = parseFloat(c.lng);
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        const spName = c.species === 'Outro' ? c.customSpecies : c.species;
+                        const marker = L.marker([lat, lng]).addTo(leafletMap)
+                            .bindPopup(`
+                                <div class="p-1">
+                                    <strong style="color: #31572C; font-size: 14px;">${spName} (${c.weight} kg)</strong><br>
+                                    <small>${c.location} • ${c.date}</small><br>
+                                    <i>Isca: ${c.bait || 'N/A'}</i>
+                                </div>
+                            `);
+                        mapMarkers.push(marker);
+                        points.push([lat, lng]);
+                    }
+                }
+            });
+
+            if (points.length > 0) {
+                const bounds = L.latLngBounds(points);
+                leafletMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 12 });
+            }
+        }
+
+        function getCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        document.getElementById('catch-lat').value = pos.coords.latitude.toFixed(5);
+                        document.getElementById('catch-lng').value = pos.coords.longitude.toFixed(5);
+                        alert('Localização GPS capturada com sucesso!');
+                    },
+                    (err) => {
+                        alert('Não foi possível obter a localização. Verifique as permissões de GPS no navegador.');
+                    }
+                );
+            } else {
+                alert('Geolocalização não é suportada por este navegador.');
+            }
+        }
+
+        // CATCH MODAL & CRUD
+        function openCatchModal(editId = null) {
+            populateGearDropdown();
+            document.getElementById('catch-modal').classList.remove('hidden');
+            
+            if (editId) {
+                document.getElementById('catch-modal-title').innerHTML = '<i class="fa-solid fa-fish text-emerald-600"></i> Editar Captura';
+                const c = appData.catches.find(item => item.id === editId);
+                if (c) {
+                    document.getElementById('catch-id').value = c.id;
+                    document.getElementById('catch-species').value = c.species;
+                    checkCustomSpecies(document.getElementById('catch-species'));
+                    if(c.species === 'Outro') document.getElementById('catch-custom-species').value = c.customSpecies;
+                    document.getElementById('catch-weight').value = c.weight;
+                    document.getElementById('catch-length').value = c.length || '';
+                    document.getElementById('catch-date').value = c.date;
+                    document.getElementById('catch-time').value = c.time || '';
+                    document.getElementById('catch-location').value = c.location;
+                    document.getElementById('catch-water-type').value = c.waterType;
+                    document.getElementById('catch-lat').value = c.lat || '';
+                    document.getElementById('catch-lng').value = c.lng || '';
+                    document.getElementById('catch-bait').value = c.bait || '';
+                    document.getElementById('catch-gear-id').value = c.gearId || '';
+                    document.getElementById('catch-notes').value = c.notes || '';
+                    document.getElementById('catch-photo-base64').value = c.photo || '';
+                    if (c.photo) {
+                        document.getElementById('catch-photo-preview-img').src = c.photo;
+                        document.getElementById('catch-photo-preview-container').classList.remove('hidden');
+                    }
+                }
+            } else {
+                document.getElementById('catch-modal-title').innerHTML = '<i class="fa-solid fa-fish text-emerald-600"></i> Registrar Nova Captura';
+                document.getElementById('catch-form').reset();
+                document.getElementById('catch-id').value = '';
+                document.getElementById('catch-photo-base64').value = '';
+                document.getElementById('catch-photo-preview-container').classList.add('hidden');
+                document.getElementById('custom-species-wrapper').classList.add('hidden');
+                document.getElementById('catch-date').value = new Date().toISOString().split('T')[0];
+            }
+        }
+
+        function closeCatchModal() {
+            document.getElementById('catch-modal').classList.add('hidden');
+        }
+
+        function populateGearDropdown() {
+            const select = document.getElementById('catch-gear-id');
+            select.innerHTML = '<option value="">(Nenhum equipamento selecionado)</option>';
+            (appData.gear || []).forEach(g => {
+                select.innerHTML += `<option value="${g.id}">${g.name} (${g.category})</option>`;
+            });
+        }
+
+        function checkCustomSpecies(selectEl) {
+            const wrapper = document.getElementById('custom-species-wrapper');
+            if (selectEl.value === 'Outro') {
+                wrapper.classList.remove('hidden');
+                document.getElementById('catch-custom-species').setAttribute('required', 'true');
+            } else {
+                wrapper.classList.add('hidden');
+                document.getElementById('catch-custom-species').removeAttribute('required');
+            }
+        }
+
+        function previewCatchPhoto(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const base64 = e.target.result;
+                    document.getElementById('catch-photo-base64').value = base64;
+                    document.getElementById('catch-photo-preview-img').src = base64;
+                    document.getElementById('catch-photo-preview-container').classList.remove('hidden');
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function saveCatch(event) {
+            event.preventDefault();
+            const id = document.getElementById('catch-id').value;
+            const species = document.getElementById('catch-species').value;
+            const customSpecies = document.getElementById('catch-custom-species').value;
+            const weight = parseFloat(document.getElementById('catch-weight').value);
+            const length = parseFloat(document.getElementById('catch-length').value) || 0;
+            const date = document.getElementById('catch-date').value;
+            const time = document.getElementById('catch-time').value;
+            const location = document.getElementById('catch-location').value;
+            const waterType = document.getElementById('catch-water-type').value;
+            const lat = document.getElementById('catch-lat').value;
+            const lng = document.getElementById('catch-lng').value;
+            const bait = document.getElementById('catch-bait').value;
+            const gearId = document.getElementById('catch-gear-id').value;
+            const notes = document.getElementById('catch-notes').value;
+            const photo = document.getElementById('catch-photo-base64').value || 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600&auto=format&fit=crop&q=80';
+
+            const catchObj = {
+                id: id ? id : 'c_' + Date.now(),
+                species,
+                customSpecies: species === 'Outro' ? customSpecies : '',
+                weight,
+                length,
+                date,
+                time,
+                location,
+                waterType,
+                lat,
+                lng,
+                bait,
+                gearId,
+                notes,
+                photo
+            };
+
+            if (id) {
+                const index = appData.catches.findIndex(c => c.id === id);
+                if (index !== -1) appData.catches[index] = catchObj;
+            } else {
+                appData.catches.push(catchObj);
+            }
+
+            saveStorageData();
+            closeCatchModal();
+            renderDashboard();
+            renderCatches();
+            updateMapMarkers();
+        }
+
+        function deleteCatch(id) {
+            if (confirm('Tem certeza que deseja excluir esta captura permanentemente?')) {
+                appData.catches = appData.catches.filter(c => c.id !== id);
+                saveStorageData();
+                renderDashboard();
+                renderCatches();
+                updateMapMarkers();
+            }
+        }
+
+        function renderCatches(filteredList = null) {
+            const container = document.getElementById('catches-grid');
+            const list = filteredList || appData.catches;
+
+            if (list.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-16 bg-white dark:bg-slate-800 rounded-3xl border border-slate-200/80 dark:border-slate-700">
+                        <i class="fa-solid fa-fish-fins text-5xl mb-3 text-emerald-300"></i>
+                        <p class="text-sm font-bold text-slate-700 dark:text-slate-300">Nenhum registro de captura encontrado.</p>
+                        <button onclick="openCatchModal()" class="mt-4 bg-emerald-600 text-white font-bold px-4 py-2 rounded-xl text-xs shadow">Registrar Primeiro Peixe</button>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '';
+            list.forEach(c => {
+                const spName = c.species === 'Outro' ? c.customSpecies : c.species;
+                let gearName = '';
+                if (c.gearId) {
+                    const g = (appData.gear || []).find(item => item.id === c.gearId);
+                    if (g) gearName = g.name;
+                }
+
+                container.innerHTML += `
+                    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200/80 dark:border-slate-700 overflow-hidden flex flex-col justify-between hover:shadow-md transition">
+                        <div>
+                            <div class="relative h-48 bg-slate-100 dark:bg-slate-700">
+                                <img src="${c.photo}" alt="${spName}" class="w-full h-full object-cover">
+                                <span class="absolute top-3 right-3 bg-emerald-600 text-white text-xs font-black px-3 py-1 rounded-full shadow flex items-center gap-1"><i class="fa-solid fa-weight-scale"></i> ${c.weight} kg</span>
+                                <span class="absolute top-3 left-3 bg-slate-900/80 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1"><i class="fa-solid fa-water"></i> ${c.waterType}</span>
+                            </div>
+                            <div class="p-5 space-y-2">
+                                <h4 class="text-lg font-black text-slate-900 dark:text-white flex items-center justify-between">
+                                    <span class="flex items-center gap-1.5"><i class="fa-solid fa-fish text-emerald-600"></i> ${spName}</span>
+                                    ${c.length ? `<span class="text-xs text-slate-400 font-semibold">${c.length} cm</span>` : ''}
+                                </h4>
+                                <p class="text-xs text-slate-500 dark:text-slate-400 flex items-center"><i class="fa-solid fa-location-dot mr-1.5 text-emerald-600"></i>${c.location}</p>
+                                <div class="grid grid-cols-2 gap-2 text-xs text-slate-600 dark:text-slate-300 pt-2 border-t border-slate-100 dark:border-slate-700">
+                                    <div><span class="font-bold">Data:</span> ${c.date}</div>
+                                    <div><span class="font-bold">Hora:</span> ${c.time || '-'}</div>
+                                    <div class="col-span-2"><span class="font-bold">Isca:</span> ${c.bait || 'Não especificada'}</div>
+                                    ${gearName ? `<div class="col-span-2 truncate"><span class="font-bold text-amber-500">Tralha:</span> ${gearName}</div>` : ''}
+                                </div>
+                                ${c.notes ? `<p class="text-xs text-slate-500 dark:text-slate-400 italic pt-1">"${c.notes}"</p>` : ''}
+                            </div>
+                        </div>
+                        <div class="p-4 bg-slate-50 dark:bg-slate-700/50 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                            ${c.lat && c.lng ? `<span class="text-[10px] text-teal-600 dark:text-teal-400 font-bold flex items-center gap-1"><i class="fa-solid fa-location-crosshairs"></i> GPS Salvo</span>` : '<span></span>'}
+                            <div class="flex space-x-2">
+                                <button onclick="openCatchModal('${c.id}')" class="bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 px-3 py-1.5 rounded-xl text-xs font-bold transition">Editar</button>
+                                <button onclick="deleteCatch('${c.id}')" class="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-xl text-xs font-bold transition">Excluir</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function filterCatches() {
+            const query = document.getElementById('filter-search').value.toLowerCase();
+            const waterFilter = document.getElementById('filter-water').value;
+            const sortBy = document.getElementById('filter-sort').value;
+
+            let result = [...appData.catches];
+
+            if (query) {
+                result = result.filter(c => {
+                    const sp = (c.species === 'Outro' ? c.customSpecies : c.species).toLowerCase();
+                    const loc = c.location.toLowerCase();
+                    const bait = (c.bait || '').toLowerCase();
+                    return sp.includes(query) || loc.includes(query) || bait.includes(query);
+                });
+            }
+
+            if (waterFilter) {
+                result = result.filter(c => c.waterType === waterFilter);
+            }
+
+            if (sortBy === 'newest') result.sort((a, b) => new Date(b.date) - new Date(a.date));
+            else if (sortBy === 'oldest') result.sort((a, b) => new Date(a.date) - new Date(b.date));
+            else if (sortBy === 'heaviest') result.sort((a, b) => parseFloat(b.weight) - parseFloat(a.weight));
+            else if (sortBy === 'longest') result.sort((a, b) => parseFloat(b.length || 0) - parseFloat(a.length || 0));
+
+            renderCatches(result);
+        }
+
+        function resetFilters() {
+            document.getElementById('filter-search').value = '';
+            document.getElementById('filter-water').value = '';
+            document.getElementById('filter-sort').value = 'newest';
+            renderCatches();
+        }
+
+        // GEAR MANAGER CRUD
+        function openGearModal(editId = null) {
+            document.getElementById('gear-modal').classList.remove('hidden');
+            if (editId) {
+                const g = appData.gear.find(item => item.id === editId);
+                if (g) {
+                    document.getElementById('gear-id').value = g.id;
+                    document.getElementById('gear-name').value = g.name;
+                    document.getElementById('gear-category').value = g.category;
+                    document.getElementById('gear-line').value = g.line || '';
+                    document.getElementById('gear-details').value = g.details || '';
+                }
+            } else {
+                document.getElementById('gear-form').reset();
+                document.getElementById('gear-id').value = '';
+            }
+        }
+
+        function closeGearModal() {
+            document.getElementById('gear-modal').classList.add('hidden');
+        }
+
+        function saveGear(event) {
+            event.preventDefault();
+            const id = document.getElementById('gear-id').value;
+            const name = document.getElementById('gear-name').value;
+            const category = document.getElementById('gear-category').value;
+            const line = document.getElementById('gear-line').value;
+            const details = document.getElementById('gear-details').value;
+
+            const gearObj = {
+                id: id ? id : 'g_' + Date.now(),
+                name,
+                category,
+                line,
+                details
+            };
+
+            if (!appData.gear) appData.gear = [];
+
+            if (id) {
+                const idx = appData.gear.findIndex(g => g.id === id);
+                if (idx !== -1) appData.gear[idx] = gearObj;
+            } else {
+                appData.gear.push(gearObj);
+            }
+
+            saveStorageData();
+            closeGearModal();
+            renderGear();
+            renderDashboard();
+        }
+
+        function deleteGear(id) {
+            if (confirm('Excluir este equipamento?')) {
+                appData.gear = appData.gear.filter(g => g.id !== id);
+                saveStorageData();
+                renderGear();
+                renderDashboard();
+            }
+        }
+
+        function renderGear() {
+            const container = document.getElementById('gear-grid');
+            const list = appData.gear || [];
+
+            if (list.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-16 bg-white dark:bg-slate-800 rounded-3xl border border-slate-200/80 dark:border-slate-700">
+                        <i class="fa-solid fa-box-archive text-5xl mb-3 text-amber-300"></i>
+                        <p class="text-sm font-bold text-slate-700 dark:text-slate-300">Sua caixa de tralhas está vazia.</p>
+                        <button onclick="openGearModal()" class="mt-4 bg-amber-500 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs shadow">Cadastrar Equipamento</button>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '';
+            list.forEach(g => {
+                container.innerHTML += `
+                    <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-200/80 dark:border-slate-700 flex flex-col justify-between hover:shadow-md transition">
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-start">
+                                <h3 class="font-black text-slate-900 dark:text-white text-base flex items-center gap-2"><i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i> ${g.name}</h3>
+                                <span class="bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 text-xs font-bold px-2.5 py-1 rounded-full">${g.category}</span>
+                            </div>
+                            ${g.line ? `<p class="text-xs text-slate-600 dark:text-slate-300"><strong class="text-slate-900 dark:text-white">Linha:</strong> ${g.line}</p>` : ''}
+                            ${g.details ? `<p class="text-xs text-slate-500 dark:text-slate-400">${g.details}</p>` : ''}
+                        </div>
+                        <div class="flex justify-end space-x-2 pt-4 mt-4 border-t border-slate-100 dark:border-slate-700">
+                            <button onclick="openGearModal('${g.id}')" class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold">Editar</button>
+                            <button onclick="deleteGear('${g.id}')" class="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-xl text-xs font-bold">Excluir</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // TRIPS & ENCYCLOPEDIA RENDER
+        function openTripModal(editId = null) {
+            document.getElementById('trip-modal').classList.remove('hidden');
+            if (editId) {
+                const t = appData.trips.find(item => item.id === editId);
+                if (t) {
+                    document.getElementById('trip-id').value = t.id;
+                    document.getElementById('trip-name').value = t.name;
+                    document.getElementById('trip-start').value = t.start;
+                    document.getElementById('trip-end').value = t.end;
+                    document.getElementById('trip-location').value = t.location;
+                    document.getElementById('trip-target').value = t.target || '';
+                    document.getElementById('trip-notes').value = t.notes || '';
+                }
+            } else {
+                document.getElementById('trip-form').reset();
+                document.getElementById('trip-id').value = '';
+            }
+        }
+
+        function closeTripModal() {
+            document.getElementById('trip-modal').classList.add('hidden');
+        }
+
+        function saveTrip(event) {
+            event.preventDefault();
+            const id = document.getElementById('trip-id').value;
+            const name = document.getElementById('trip-name').value;
+            const start = document.getElementById('trip-start').value;
+            const end = document.getElementById('trip-end').value;
+            const location = document.getElementById('trip-location').value;
+            const target = document.getElementById('trip-target').value;
+            const notes = document.getElementById('trip-notes').value;
+
+            const tripObj = { id: id ? id : 't_' + Date.now(), name, start, end, location, target, notes };
+
+            if (id) {
+                const idx = appData.trips.findIndex(t => t.id === id);
+                if (idx !== -1) appData.trips[idx] = tripObj;
+            } else {
+                appData.trips.push(tripObj);
+            }
+
+            saveStorageData();
+            closeTripModal();
+            renderTrips();
+        }
+
+        function deleteTrip(id) {
+            if (confirm('Excluir esta excursão?')) {
+                appData.trips = appData.trips.filter(t => t.id !== id);
+                saveStorageData();
+                renderTrips();
+            }
+        }
+
+        function renderTrips() {
+            const container = document.getElementById('trips-container');
+            if (!appData.trips || appData.trips.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-16 bg-white dark:bg-slate-800 rounded-3xl border border-slate-200/80 dark:border-slate-700">
+                        <i class="fa-solid fa-compass text-5xl mb-3 text-sky-300"></i>
+                        <p class="text-sm font-bold text-slate-700 dark:text-slate-300">Nenhuma excursão planejada.</p>
+                        <button onclick="openTripModal()" class="mt-4 bg-sky-600 text-white font-bold px-4 py-2 rounded-xl text-xs shadow">Criar Excursão</button>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '';
+            appData.trips.forEach(t => {
+                container.innerHTML += `
+                    <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-200/80 dark:border-slate-700 flex flex-col justify-between hover:shadow-md transition">
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-start">
+                                <h3 class="font-black text-slate-900 dark:text-white text-lg flex items-center gap-2"><i class="fa-solid fa-compass text-sky-500"></i> ${t.name}</h3>
+                                <span class="bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 text-xs font-bold px-2.5 py-1 rounded-full"><i class="fa-solid fa-location-dot"></i> ${t.location}</span>
+                            </div>
+                            <p class="text-xs text-slate-500 dark:text-slate-400"><i class="fa-solid fa-calendar mr-1"></i> ${t.start} até ${t.end}</p>
+                            ${t.target ? `<p class="text-xs text-slate-600 dark:text-slate-300"><strong class="text-slate-900 dark:text-white">Alvo:</strong> ${t.target}</p>` : ''}
+                            ${t.notes ? `<p class="text-xs text-slate-500 italic">"${t.notes}"</p>` : ''}
+                        </div>
+                        <div class="flex justify-end space-x-2 pt-4 mt-4 border-t border-slate-100 dark:border-slate-700">
+                            <button onclick="openTripModal('${t.id}')" class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold">Editar</button>
+                            <button onclick="deleteTrip('${t.id}')" class="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-xl text-xs font-bold">Excluir</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function renderEncyclopedia(list) {
+            const container = document.getElementById('encyclopedia-grid');
+            container.innerHTML = '';
+            list.forEach((fish) => {
+                container.innerHTML += `
+                    <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-200/80 dark:border-slate-700 flex flex-col justify-between hover:shadow-md transition">
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-fish text-emerald-600"></i> ${fish.name}</h3>
+                                <span class="bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 text-xs font-bold px-2.5 py-1 rounded-full">${fish.waterType}</span>
+                            </div>
+                            <p class="text-xs text-slate-400 italic">${fish.scientificName}</p>
+                            <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-3">${fish.characteristics}</p>
+                        </div>
+                        <div class="pt-4 mt-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                            <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><i class="fa-solid fa-ruler"></i> ${fish.size}</span>
+                            <button onclick="openSpeciesModal('${fish.name}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow transition">Ver Guia</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function filterEncyclopedia() {
+            const query = document.getElementById('encyclopedia-search').value.toLowerCase();
+            const filtered = brazilianFishEncyclopedia.filter(f => f.name.toLowerCase().includes(query) || f.scientificName.toLowerCase().includes(query));
+            renderEncyclopedia(filtered);
+        }
+
+        function openSpeciesModal(name) {
+            const fish = brazilianFishEncyclopedia.find(f => f.name === name);
+            if (!fish) return;
+
+            document.getElementById('species-modal-name').innerHTML = `<i class="fa-solid fa-fish text-emerald-600"></i> ${fish.name}`;
+            document.getElementById('species-modal-content').innerHTML = `
+                <div class="space-y-3">
+                    <p><strong class="text-slate-900 dark:text-white">Nome Científico:</strong> <span class="italic">${fish.scientificName}</span></p>
+                    <p><strong class="text-slate-900 dark:text-white">Classificação:</strong> ${fish.waterType}</p>
+                    <p><strong class="text-slate-900 dark:text-white">Habitat:</strong> ${fish.habitat}</p>
+                    <p><strong class="text-slate-900 dark:text-white">Características:</strong> ${fish.characteristics}</p>
+                    <p><strong class="text-slate-900 dark:text-white">Dieta:</strong> ${fish.diet}</p>
+                    <p><strong class="text-slate-900 dark:text-white">Iscas Indicadas:</strong> ${fish.suggestedBaits}</p>
+                    <p><strong class="text-slate-900 dark:text-white">Técnicas:</strong> ${fish.techniques}</p>
+                    <p><strong class="text-slate-900 dark:text-white">Tamanho Típico:</strong> ${fish.size}</p>
+                    <p><strong class="text-slate-900 dark:text-white">Curiosidade:</strong> ${fish.facts}</p>
+                    <div class="bg-amber-50 dark:bg-amber-950/60 border-l-4 border-amber-500 p-4 rounded-r-2xl mt-4">
+                        <p class="text-xs text-amber-800 dark:text-amber-300 font-bold flex items-center gap-1"><i class="fa-solid fa-triangle-exclamation"></i> Regulamentação e Cota:</p>
+                        <p class="text-xs text-amber-700 dark:text-amber-400 mt-1">${fish.regulations}</p>
+                    </div>
+                </div>
+            `;
+            document.getElementById('species-modal').classList.remove('hidden');
+        }
+
+        function closeSpeciesModal() {
+            document.getElementById('species-modal').classList.add('hidden');
+        }
+
+        // CHAT AI
+        function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const container = document.getElementById('chat-messages');
+
+            container.innerHTML += `
+                <div class="flex items-start justify-end space-x-3">
+                    <div class="bg-emerald-600 text-white p-4 rounded-2xl max-w-xl text-sm shadow-sm">
+                        ${text}
+                    </div>
+                    <div class="bg-slate-700 text-white w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-bold text-xs"><i class="fa-solid fa-user"></i></div>
+                </div>
+            `;
+            input.value = '';
+            container.scrollTop = container.scrollHeight;
+
+            setTimeout(() => {
+                let response = "Consulte as regulamentações do IBAMA e os guias locais para melhores resultados na sua região.";
+                const lower = text.toLowerCase();
+
+                if (lower.includes('tucunaré') || lower.includes('tucunare')) {
+                    response = "Os Tucunarés atacam com força na superfície (Zigs e Poppers) nas primeiras horas da manhã. Em períodos quentes do meio-dia, prefira Jigs de pena e softbaits em estruturas fundas.";
+                } else if (lower.includes('dourado')) {
+                    response = "O Dourado exige iscas resistentes devido à sua mordida forte. Colheres prateadas e plugs com garatéias reforçadas (3X ou 4X) são indispensáveis nas corredeiras.";
+                } else if (lower.includes('nó') || lower.includes('lider')) {
+                    response = "Para unir a multifilamento ao líder de fluorcarbono com máxima resistência, use o Nó Albright ou o Nó FG.";
+                }
+
+                container.innerHTML += `
+                    <div class="flex items-start space-x-3">
+                        <div class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-bold text-xs"><i class="fa-solid fa-fish"></i></div>
+                        <div class="bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100 p-4 rounded-2xl max-w-xl text-sm shadow-sm">
+                            ${response}
+                        </div>
+                    </div>
+                `;
+                container.scrollTop = container.scrollHeight;
+            }, 500);
+        }
+
+        function handleChatKey(e) {
+            if (e.key === 'Enter') sendChatMessage();
+        }
+
+        // BACKUP EXPORT
+        function exportData() {
+            const jsonStr = JSON.stringify(appData, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `fishlog_pro_backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
